@@ -32,7 +32,7 @@ import csv
 
 #region Global Delegations ----------------------------------------------------------------------------------------------
 V_OFFSET = 2.5 # This value needs to be calibrated by reading the open circuit voltage
-SENSITIVITY = 185.0
+SENSITIVITY = 185.0 / 1000
 SAMPLE_RATE = 1 # This is the number of seconds between each reading
 endMainSuccess = False
 #endregion Global Delegations -------------------------------------------------------------------------------------------
