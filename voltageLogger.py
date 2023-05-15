@@ -22,12 +22,21 @@ Acs712 is available in market in three ratings:
 #region Imports ---------------------------------------------------------------------------------------------------------
 from Phidget22.Phidget import *
 from Phidget22.Devices.VoltageInput import *
-from Phidget22.Devices.VoltageRatioInput import *
+# from Phidget22.Devices.VoltageRatioInput import *
 import traceback
-import time
+from datetime import datetime, timedelta
+import time as t
+import csv
 #endregion End Imports --------------------------------------------------------------------------------------------------
 
+
+#region Global Delegations ----------------------------------------------------------------------------------------------
+V_OFFSET = 2.5 # This value needs to be calibrated by reading the open circuit voltage
+SENSITIVITY = 185.0
+SAMPLE_RATE = 1 # This is the number of seconds between each reading
 endMainSuccess = False
+#endregion Global Delegations -------------------------------------------------------------------------------------------
+
 
 #region Main Function ---------------------------------------------------------------------------------------------------
 def main():
@@ -36,15 +45,20 @@ def main():
     # Set up Input Sensors
     # Create channels for voltage and current sensors
     voltageInput0 = VoltageInput()
-    currentInput1 = VoltageRatioInput() # more on this later
+    currentInput1 = VoltageInput()
 
     # Set addressing parameters
     voltageInput0.setIsHubPortDevice(True)
     voltageInput0.setHubPort(0)
 
+    currentInput1.setIsHubPortDevice(True)
+    currentInput1.setHubPort(1)
+
     # Open your Phidgets and wait for attachment
     try:
         voltageInput0.openWaitForAttachment(5000)
+        currentInput1.openWaitForAttachment(5000)
+        print('Sensors successfully attached!')
     except PhidgetException as ex:
         traceback.print_exc()
         print("")
@@ -54,21 +68,44 @@ def main():
     #Set the sensor type to match the analog sensor you are using after opening the Phidget
     voltageInput0.setSensorType(VoltageSensorType.SENSOR_TYPE_1135)
 
+    # Create CSV file for this run data
+    log_file_name = datetime.now().strftime('Voltage Log -- %Y-%m-%d %H.%M.%S.csv')
     # Start Main Loop
     print('Starting Main Loop: Press "Ctrl+C" to stop')
+    START_TIME = None # datetime.now()
     try:
-        while True:
-            # Read latest values
-            # Print latest values to terminal output
-            # Save latest values to CSV file
+        with open(log_file_name, mode='w', newline='') as log_file:
+            writer = csv.DictWriter(log_file, delimiter=',', fieldnames=['Time', 'Duration', 'Voltage', 'Current'])
+            writer.writeheader()
+            while True:
+                # Read latest values
+                voltage = voltageInput0.getVoltage()
+                current = (V_OFFSET - currentInput1.getVoltage()) / SENSITIVITY
+                last_read_time = datetime.now()
+                if START_TIME == None:
+                    START_TIME = last_read_time
 
-            # Sleep for 1 seconds before iterating the loop
-            time.sleep(1) 
-    except (Exception, KeyboardInterrupt):
+                # Print latest values to terminal output
+                print_str = f'{last_read_time:%H:%M:%S}, {(last_read_time - START_TIME).total_seconds():.2f}, {voltage:.3f}, {current:.3f}'
+
+                print(print_str)
+                
+                # Save latest values to CSV file
+                writer.writerow({
+                    'Time':f'{last_read_time:%H:%M:%S}',
+                    'Duration':f'{(last_read_time - START_TIME).total_seconds():.2f}',
+                    'Voltage':f'{voltage:.3f}',
+                    'Current':f'{current:.3f}' 
+                    })
+
+                # Sleep for 1 seconds before iterating the loop
+                t.sleep(SAMPLE_RATE) 
+    except KeyboardInterrupt:
         pass
     print('Ending Main Loop')
     endMainSuccess = True
 #endregion Main Function ------------------------------------------------------------------------------------------------
+
 
 # Call main function
 if __name__ == "__main__":
