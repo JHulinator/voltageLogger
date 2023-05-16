@@ -2,8 +2,9 @@
 This code will save voltage and current vs. time to CSV file.
 
 Voltage is sensed using a Precision Voltage Sensor (Device ID = 1135_0B)
+The current is sansed using 30A Current Sensing Phidget (Device ID = VCP1100_0)
 
-The current is sensed using a ACS712 current sensor module
+In case the current is sensed using a ACS712 current sensor module, use:
 Acs712 is available in market in three ratings:
     ACS712ELCTR-05B-T -- Sensitivity = 185 mV/A
     ACS712ELCTR-20A-T -- Sensitivity = 100 mV/A
@@ -16,12 +17,12 @@ Acs712 is available in market in three ratings:
           to which acs712 output is connected.
         * Sensitivity is Acs712 change in voltage representing 1 A current change as given above.
 
-    Note: The above formula gives the current the basic calculation, but we will modify to use Phidget's voltage ratio
 '''
 
 #region Imports ---------------------------------------------------------------------------------------------------------
 from Phidget22.Phidget import *
 from Phidget22.Devices.VoltageInput import *
+from Phidget22.Devices.CurrentInput import *
 # from Phidget22.Devices.VoltageRatioInput import *
 import traceback
 from datetime import datetime, timedelta
@@ -45,13 +46,13 @@ def main():
     # Set up Input Sensors
     # Create channels for voltage and current sensors
     voltageInput0 = VoltageInput()
-    currentInput1 = VoltageInput()
+    currentInput1 = CurrentInput() # VoltageInput()
 
     # Set addressing parameters
     voltageInput0.setIsHubPortDevice(True)
     voltageInput0.setHubPort(0)
 
-    currentInput1.setIsHubPortDevice(True)
+    currentInput1.setIsHubPortDevice(False)
     currentInput1.setHubPort(1)
 
     # Open your Phidgets and wait for attachment
@@ -79,8 +80,8 @@ def main():
             writer.writeheader()
             while True:
                 # Read latest values
-                voltage = voltageInput0.getVoltage()
-                current = (V_OFFSET - currentInput1.getVoltage()) / SENSITIVITY
+                voltage = voltageInput0.getSensorValue() #getVoltage()
+                current = currentInput1.getCurrent() # (V_OFFSET - currentInput1.getVoltage()) / SENSITIVITY
                 last_read_time = datetime.now()
                 if START_TIME == None:
                     START_TIME = last_read_time
